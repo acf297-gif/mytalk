@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>나와의 톡 (버튼수정본)</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial,sans-serif;
+background:#eef6ea;
+}
+
+.app{
+max-width:430px;
+height:100vh;
+margin:auto;
+display:flex;
+flex-direction:column;
+background:#f9fcf6;
+border:10px solid #cfe4c8;
+border-radius:34px;
+overflow:hidden;
+}
+
+.top{
+background:#f7fbf5;
+padding:12px;
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+border-bottom:1px solid #dbe9d4;
+}
+
+button{
+padding:12px 14px;
+border-radius:18px;
+border:1px solid #c8dbc0;
+background:#ffffff;
+font-weight:bold;
+color:#63755f;
+touch-action:manipulation;
+}
+
+.active{
+outline:3px solid #c6e8ba;
+background:#dff2d5;
+}
+
+#chat{
+flex:1;
+overflow:auto;
+padding:18px;
+display:flex;
+flex-direction:column;
+gap:14px;
+background:#f8fcf6;
+background-image:
+radial-gradient(#dcefd7 2px, transparent 2px);
+background-size:70px 70px;
+}
+
+.row{
+display:flex;
+}
+
+.right{
+justify-content:flex-end;
+}
+
+.bubble{
+position:relative;
+max-width:72%;
+padding:12px 16px;
+border-radius:22px;
+background:#ffffff;
+border:2px solid #d8ddd0;
+color:#5f705a;
+white-space:pre-wrap;
+word-break:break-word;
+}
+
+.bubble:after{
+content:'';
+position:absolute;
+left:-8px;
+bottom:12px;
+border-right:10px solid white;
+border-top:8px solid transparent;
+border-bottom:8px solid transparent;
+}
+
+.right .bubble{
+background:#cfeebd;
+border:2px solid #b8d6ab;
+}
+
+.right .bubble:after{
+left:auto;
+right:-8px;
+border-right:none;
+border-left:10px solid #cfeebd;
+border-top:8px solid transparent;
+border-bottom:8px solid transparent;
+}
+
+.input{
+display:flex;
+gap:8px;
+padding:10px;
+background:#eef7e8;
+border-top:1px solid #dbe9d4;
+}
+
+textarea{
+flex:1;
+height:60px;
+padding:12px;
+border-radius:18px;
+border:1px solid #cfe0c8;
+background:#f8fcf6;
+color:#63755f;
+}
+
+#sendBtn{
+background:#dff2d5;
+}
+</style>
+
+</head>
+<body>
+
+<div class='app'>
+
+<div class='top'>
+<button type='button' id='qBtn'>🤔 질문모드</button>
+<button type='button' id='aBtn'>💛 답변모드</button>
+<button type='button' id='promptBtn'>질문추천</button>
+<button type='button' id='backupBtn'>백업</button>
+<button type='button' id='clearBtn'>새일기</button>
+</div>
+
+<div id='chat'></div>
+
+<div class='input'>
+<textarea id='txt'></textarea>
+<button type='button' id='sendBtn'>전송</button>
+</div>
+
+</div>
+
+<script>
+(function(){
+
+let mode='q';
+let msgs=[];
+
+try{
+msgs=JSON.parse(
+localStorage.getItem('mytalk_fixed')||'[]'
+);
+}catch(e){}
+
+const qBtn=document.getElementById('qBtn');
+const aBtn=document.getElementById('aBtn');
+const promptBtn=document.getElementById('promptBtn');
+const backupBtn=document.getElementById('backupBtn');
+const clearBtn=document.getElementById('clearBtn');
+const sendBtn=document.getElementById('sendBtn');
+const txt=document.getElementById('txt');
+const chat=document.getElementById('chat');
+
+const prompts=[
+'오늘 감정은?',
+'지금 원하는 건?',
+'왜 신경쓰이지?',
+'오늘 잘한 건?'
+];
+
+function save(){
+localStorage.setItem(
+'mytalk_fixed',
+JSON.stringify(msgs)
+);
+}
+
+function setMode(m){
+mode=m;
+
+qBtn.classList.toggle(
+'active',
+m==='q'
+);
+
+aBtn.classList.toggle(
+'active',
+m==='a'
+);
+}
+
+function render(){
+
+chat.innerHTML='';
+
+if(!msgs.length){
+chat.innerHTML=
+'<p>버튼 눌러 질문/답변 작성해보세요.</p>';
+return;
+}
+
+msgs.forEach(function(x){
+
+let d=document.createElement('div');
+
+d.className=
+'row '+
+(x.m==='a'
+?'right'
+:'');
+
+d.innerHTML=
+'<div class="bubble">'+
+x.t+
+'</div>';
+
+chat.appendChild(d);
+
+});
+
+chat.scrollTop=
+chat.scrollHeight;
+
+}
+
+function send(){
+
+var v=txt.value.trim();
+
+if(!v) return;
+
+var now=new Date();
+
+var time=
+String(
+now.getHours()
+).padStart(2,'0')
++':'+
+String(
+now.getMinutes()
+).padStart(2,'0');
+
+msgs.push({
+m:mode,
+t:v,
+time:time
+});
+
+save();
+
+txt.value='';
+
+render();
+
+}
+
+
+/* 백업 */
+function backup(){
+
+if(!msgs.length){
+alert('백업할 내용이 없어요');
+return;
+}
+
+var now=new Date();
+
+var header=
+'나와의 채팅 일기 백업\n'+
+'백업일시: '+
+now.getFullYear()+'-'+
+String(
+now.getMonth()+1
+).padStart(2,'0')+'-'+
+String(
+now.getDate()
+).padStart(2,'0')+' '+
+String(
+now.getHours()
+).padStart(2,'0')+':'+
+String(
+now.getMinutes()
+).padStart(2,'0')+
+'\n\n--------------------\n\n';
+
+var text=
+header+
+msgs.map(function(m){
+
+var timeText='';
+
+if(m.time){
+timeText=
+' ('+m.time+')';
+}
+
+return (
+m.m==='q'
+? '[질문'+timeText+'] '
+: '[답변'+timeText+'] '
+)+m.t;
+
+}).join('\n\n');
+
+
+var old=
+document.getElementById(
+'downloadBox'
+);
+
+if(old) old.remove();
+
+var box=
+document.createElement(
+'div'
+);
+
+box.id='downloadBox';
+
+box.style=
+'position:fixed;'+
+'inset:0;'+
+'background:rgba(0,0,0,.5);'+
+'display:flex;'+
+'justify-content:center;'+
+'align-items:center;'+
+'z-index:9999';
+
+var panel=
+document.createElement(
+'div'
+);
+
+panel.style=
+'background:#fff;'+
+'padding:20px;'+
+'border-radius:16px;'+
+'text-align:center;'+
+'max-width:320px';
+
+var blob=
+new Blob(
+[text],
+{
+type:
+'text/plain;charset=utf-8'
+}
+);
+
+var url=
+URL.createObjectURL(
+blob
+);
+
+panel.innerHTML=
+'<p>아래 버튼 눌러 txt 저장</p>';
+
+var dl=
+document.createElement(
+'a'
+);
+
+dl.href=url;
+
+dl.download=
+'나와의채팅일기_'+
+now.getFullYear()+
+String(
+now.getMonth()+1
+).padStart(2,'0')+
+String(
+now.getDate()
+).padStart(2,'0')+
+'.txt';
+
+dl.textContent=
+'📄 텍스트 파일 다운로드';
+
+dl.style=
+'display:inline-block;'+
+'padding:14px 18px;'+
+'background:#5b73ff;'+
+'color:#fff;'+
+'border-radius:12px;'+
+'text-decoration:none;'+
+'font-weight:bold';
+
+var close=
+document.createElement(
+'button'
+);
+
+close.textContent='닫기';
+
+close.style=
+'display:block;'+
+'margin:14px auto 0';
+
+close.onclick=function(){
+URL.revokeObjectURL(
+url
+);
+box.remove();
+};
+
+panel.appendChild(dl);
+panel.appendChild(close);
+
+box.appendChild(panel);
+
+document.body.appendChild(
+box
+);
+
+}
+/* 백업 끝 */
+
+qBtn.addEventListener(
+'click',
+()=>setMode('q')
+);
+
+aBtn.addEventListener(
+'click',
+()=>setMode('a')
+);
+
+promptBtn.addEventListener(
+'click',
+()=>{
+txt.value=
+prompts[
+Math.floor(
+Math.random()*
+prompts.length
+)
+];
+}
+);
+
+backupBtn.addEventListener(
+'click',
+backup
+);
+
+clearBtn.addEventListener(
+'click',
+()=>{
+if(
+confirm(
+'새 일기 시작?'
+)
+){
+msgs=[];
+save();
+render();
+}
+}
+);
+
+sendBtn.addEventListener(
+'click',
+send
+);
+
+txt.addEventListener(
+'keydown',
+function(e){
+if(
+e.key==='Enter'
+&&!e.shiftKey
+){
+e.preventDefault();
+send();
+}
+}
+);
+
+setMode('q');
+render();
+
+})();
+</script>
+
+</body>
+</html>
